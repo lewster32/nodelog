@@ -9,7 +9,8 @@ var sys = require('sys');
 
 var logFile, day;
 function writeLog(text) {
-  text = text.replace(/[^(\x20-\xFF)]*/g,'');
+
+  text = text.replace(/((\x03)([0-9]*)(,?)([0-9]+))|[^(\x20-\xFF)]*/g,''); // strip out mIRC colour codes and other non-printable chars
   var date = new Date;
   var today = [
      date.getFullYear(),
@@ -34,9 +35,14 @@ function writeLog(text) {
 }
 
 var client = new irc.Client(config.host, config.port);
-client.connect(config.user);
+client.connect(config.nick, config.user, config.real);
 
 client.addListener('001', function() {
+  if (config.perform.length > 0) {
+	for (var p in config.perform) {
+		this.send(config.perform[p]);
+	}
+  }
   this.send('JOIN', config.channel);
 });
 
@@ -54,7 +60,7 @@ client.addListener('QUIT', function(prefix, message) {
 
 client.addListener('KICK', function(prefix, channel, nick, message) {
   writeLog('* '+nick+' was kicked by '+irc.user(prefix).nick+' ('+message+')');
-  if (nick == config.user) {
+  if (nick == config.nick) {
 	this.send('JOIN', config.channel);
   }
 });
@@ -64,12 +70,19 @@ client.addListener('MODE', function(prefix, channel, modes, target) {
   writeLog('* '+irc.user(prefix).nick+' sets mode: '+modes+target);
 });
 
+client.addListener('KICK', function(prefix, channel, nick, message) {
+  writeLog('* '+nick+' was kicked by '+irc.user(prefix).nick+' ('+message+')');
+  if (nick == config.nick) {
+	this.send('JOIN', config.channel);
+  }
+});
+
+client.addListener('TOPIC', function(prefix, channel, text) {
+  writeLog('* '+irc.user(prefix).nick+' changes topic to \''+text+'\'');
+});
+
 client.addListener('PRIVMSG', function(prefix, channel, text) {
   switch (text) {
-    case '!source':
-    case '!src':
-      this.send('PRIVMSG', channel, ':Source is here: '+config.srcUrl);
-      break;
     case '!logs':
     case '!log':
       this.send('PRIVMSG', channel, ':Logs are here: '+config.logUrl);
@@ -83,4 +96,4 @@ client.addListener('PRIVMSG', function(prefix, channel, text) {
   }
 });
 
-repl.start("logbot> ");
+repl.start(config.real+"> ");
