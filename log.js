@@ -70,13 +70,6 @@ client.addListener('MODE', function(prefix, channel, modes, target) {
   writeLog('* '+irc.user(prefix).nick+' sets mode: '+modes+target);
 });
 
-client.addListener('KICK', function(prefix, channel, nick, message) {
-  writeLog('* '+nick+' was kicked by '+irc.user(prefix).nick+' ('+message+')');
-  if (nick == config.nick) {
-	this.send('JOIN', config.channel);
-  }
-});
-
 client.addListener('TOPIC', function(prefix, channel, text) {
   writeLog('* '+irc.user(prefix).nick+' changes topic to \''+text+'\'');
 });
